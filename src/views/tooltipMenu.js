@@ -3,10 +3,9 @@ define([
 	"use!backbone",
 	"use!underscore",
 	"use!ui",
-	"use!qtip",
-	"text!./templates/tooltipMenu.html"
+	"use!qtip"
 		],
-function($, Backbone, _, ui, qtip, template){
+function($, Backbone, _, ui, qtip){
 
 	var TooltipMenuView = Backbone.View.extend({
 
@@ -36,14 +35,13 @@ function($, Backbone, _, ui, qtip, template){
             // Render menu.
             var menuDef = this.model.get('menu');
             if (menuDef){
-                this.$menu = this.renderMenu(menuDef)
+                this.$menu = this.renderMenu(menuDef, 0)
                 this.$menuContainer.append(this.$menu);
-                this.connectMenu();
-                this.connectMenuItems();
+                this.connectMenu($(this.el), this.$menu, this.$menuContainer);
             }
         },
 
-        renderMenu: function(menuDef){
+        renderMenu: function(menuDef, level){
             // Create menu item root.
             var $menu = $('<ul class="menu"></ul>');
 
@@ -65,7 +63,6 @@ function($, Backbone, _, ui, qtip, template){
                     $item = $(item.content).clone(true);
                 }
 
-
                 // If it's a leaf, render it as a leaf.
                 if (isLeaf){
                     $item.addClass('menu-item menu-leaf');
@@ -75,9 +72,8 @@ function($, Backbone, _, ui, qtip, template){
                 else{
                     $item.addClass('menu-item menu-subtitle');
                     $itemContainer.append($item);
-                    $itemContainer.append(this.renderMenu(item));
+                    $itemContainer.append(this.renderMenu(item, level + 1));
                 }
-                
 
                 // Append the item to the menu.
                 $menu.append($itemContainer);
@@ -87,68 +83,72 @@ function($, Backbone, _, ui, qtip, template){
             return $menu;
         },
 
-        connectMenu: function(){
+        connectMenu: function($target, $menu, $container){
             var _this = this;
 
-            $(this.el).on('click', function(event) {
-                var $self = $(this);
+            // Create the tooltip menu.
+            $target.qtip({
+                overwrite: false,
+                content: { 
+                    text: $menu,
+                    prerender: true
+                },
+                position: {
+                    container: $container,
+                    my: 'top left',
+                    at: 'bottom left'
+                },
+                show: {
+                    event: "click"
+                },
+                hide: {
+                    delay: 100,
+                    event: 'unfocus',
+                    fixed: true
+                },
+                style: {
+                    classes: 'tooltip-menu-tooltip',
+                    tip: false
+                },
+                events: {
+                    render: function(event, api) {
+                        // Toggle main menu when target is clicked.
+                        $(api.elements.target).on('click', function(clickEvent){
+                            // Stop propagation.
+                            clickEvent.stopPropagation();
+                            clickEvent.stopImmediatePropagation();
 
-                // Create the tooltip menu.
-                $self.qtip({
-                    overwrite: false,
-                    content: { 
-                        text: _this.$menu 
-                    },
-                    position: {
-                        container: _this.$menuContainer,
-                        my: 'top left',
-                        at: 'bottom left',
-                        viewport: $(window), 
-                        adjust: { method: 'shift flip' }
-                    },
-                    show: {
-                        event: event.type,
-                        ready: true,
-                    },
-                    hide: {
-                        delay: 100,
-                        event: 'unfocus',
-                        fixed: true
-                    },
-                    style: {
-                        classes: 'tooltip-menu-tooltip',
-                        tip: false
-                    },
-                    events: {
-                        toggle: function(event, api) {
-                            api.elements.target.toggleClass('active', event.type === 'tooltipshow');
-                        },
-                        render: function(event, api) {
-                            // Hide menu and trigger selected when leaf is clicked.
-                            $('.menu-leaf', _this.$menuContainer).on('click', function(clickEvent){
-                                // Stop propagation.
-                                clickEvent.stopPropagation();
-                                clickEvent.stopImmediatePropagation();
+                            // Toggle the menu.
+                            api.toggle();
+                        });
 
-                                // Hide the tooltip. 
-                                api.hide(clickEvent);
+                        // Hide menu and trigger selected when leaf is clicked.
+                        $('.menu-leaf', _this.$menuContainer).on('click', function(clickEvent){
+                            // Stop propagation.
+                            clickEvent.stopPropagation();
+                            clickEvent.stopImmediatePropagation();
 
-                            });
-                        },
-                        // Hide submenus when the top menu is hidden.
-                        hide: function(event, api) {
-                            var oEvent = event.originalEvent || event;
-                            $('.menu-subtitle', api.elements.target).qtip('hide', oEvent);
-                        },
+                            // Hide the tooltip. 
+                            api.hide(clickEvent);
+                        });
+
+                        // Connect menu items.
+                        _this.connectMenuItems($menu);
+
+                    },
+                    // Hide submenus when the top menu is hidden.
+                    hide: function(event, api) {
+                        var oEvent = event.originalEvent || event;
+                        $('.menu-subtitle', api.elements.target).qtip('hide', oEvent);
                     }
-                });
+                }
             });
         },
 
-        connectMenuItems: function(){
+        connectMenuItems: function($menu){
 
-            $('.menu-item', this.el).on('mouseover', function(event) {
-                var $self = $(this);
+            _.each($('.menu-item', $menu), function(menuEl){
+                var $self = $(menuEl);
 
                 // Get parent and parent container.
                 var $parentMenu = $self.closest('.menu');
@@ -167,15 +167,12 @@ function($, Backbone, _, ui, qtip, template){
                         text: $submenu
                     },
                     position: {
-                        container: $parentContainer,
+                        container: $parentMenu,
                         my: 'top left',
                         at: 'top right',
-                        viewport: $(window), 
-                        adjust: { method: 'shift flip' }
                     },
                     show: {
-                        event: event.type,
-                        ready: true,
+                        event: "mouseover",
                         solo: $parentContainer
                     },
                     hide: {
@@ -188,14 +185,11 @@ function($, Backbone, _, ui, qtip, template){
                         tip: false
                     },
                     events: {
-                        toggle: function(event, api) {
-                            api.elements.target.toggleClass('active', event.type === 'tooltipshow');
-                        },
                         render: function(event, api) {
                             // Hide when other items in the parent menu are mouse-overed.
                             $('> li >.menu-item', $parentMenu).on('mouseover', function(mouseOverEvent){
-                                if (mouseOverEvent.target != api.elements.target){
-                                    api.elements.tooltip.hide();
+                                if (! $(mouseOverEvent.target).is(api.elements.target)){
+                                    api.hide();
                                 }
                             });
                         },
