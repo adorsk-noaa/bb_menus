@@ -43,13 +43,13 @@ function($, Backbone, _, ui, qtip){
 
         renderMenu: function(menuDef, level){
             // Create menu item root.
-            var $menu = $('<ul class="menu"></ul>');
+            var $menu = $('<div class="menu"></div>');
 
             // For each menu item...
             _.each(menuDef.items, function(item){
 
                 // Initialize item container.
-                var $itemContainer = $('<li></li>');
+                var $itemContainer = $('<div><div>');
 
                 // Determine if the item is a leaf.
                 var isLeaf = (item.items) ? false : true;
@@ -71,6 +71,7 @@ function($, Backbone, _, ui, qtip){
                 // Otherwise render the item as a menu.
                 else{
                     $item.addClass('menu-item menu-subtitle');
+                    $item.append('<span class="arrow">&#x25B6;</span>');
                     $itemContainer.append($item);
                     $itemContainer.append(this.renderMenu(item, level + 1));
                 }
@@ -94,9 +95,11 @@ function($, Backbone, _, ui, qtip){
                     prerender: true
                 },
                 position: {
-                    container: $container,
                     my: 'top left',
-                    at: 'bottom left'
+                    at: 'bottom left',
+                    adjust: {
+                        y: 2,
+                    }
                 },
                 show: {
                     event: "click"
@@ -123,7 +126,7 @@ function($, Backbone, _, ui, qtip){
                         });
 
                         // Hide menu and trigger selected when leaf is clicked.
-                        $('.menu-leaf', _this.$menuContainer).on('click', function(clickEvent){
+                        $('.menu-leaf', api.elements.tooltip).on('click', function(clickEvent){
                             // Stop propagation.
                             clickEvent.stopPropagation();
                             clickEvent.stopImmediatePropagation();
@@ -139,7 +142,7 @@ function($, Backbone, _, ui, qtip){
                     // Hide submenus when the top menu is hidden.
                     hide: function(event, api) {
                         var oEvent = event.originalEvent || event;
-                        $('.menu-subtitle', api.elements.target).qtip('hide', oEvent);
+                        $('.menu-subtitle', api.elements.tooltip).qtip('hide', oEvent);
                     }
                 }
             });
@@ -155,7 +158,7 @@ function($, Backbone, _, ui, qtip){
                 var $parentContainer = $parentMenu.parent();
 
                 // If we can't find a sub-menu... return
-                var $submenu = $self.next('ul');
+                var $submenu = $self.next('.menu');
                 if(! $submenu.length) {
                     return false; 
                 }
@@ -168,8 +171,12 @@ function($, Backbone, _, ui, qtip){
                     },
                     position: {
                         container: $parentMenu,
+                        target: $parentMenu.closest('.tooltip-menu-tooltip'),
                         my: 'top left',
                         at: 'top right',
+                        adjust: {
+                            x: -2
+                        }
                     },
                     show: {
                         event: "mouseover",
@@ -187,7 +194,7 @@ function($, Backbone, _, ui, qtip){
                     events: {
                         render: function(event, api) {
                             // Hide when other items in the parent menu are mouse-overed.
-                            $('> li >.menu-item', $parentMenu).on('mouseover', function(mouseOverEvent){
+                            $('> .menu-item', $parentMenu).on('mouseover', function(mouseOverEvent){
                                 if (! $(mouseOverEvent.target).is(api.elements.target)){
                                     api.hide();
                                 }
