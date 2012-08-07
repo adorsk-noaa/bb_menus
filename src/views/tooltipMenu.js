@@ -49,7 +49,7 @@ function($, Backbone, _, ui, qtip){
             _.each(menuDef.items, function(item){
 
                 // Initialize item container.
-                var $itemContainer = $('<div><div>');
+                var $itemContainer = $('<div class="menu-item"></div>');
 
                 // Determine if the item is a leaf.
                 var isLeaf = (item.items) ? false : true;
@@ -65,16 +65,15 @@ function($, Backbone, _, ui, qtip){
 
                 // If it's a leaf, render it as a leaf.
                 if (isLeaf){
-                    $item.addClass('menu-item menu-leaf');
-                    $itemContainer.append($item);
+                    $itemContainer.addClass('menu-item menu-leaf');
                 }
                 // Otherwise render the item as a menu.
                 else{
-                    $item.addClass('menu-item menu-subtitle');
-                    $item.append('<span class="arrow">&#x25B6;</span>');
-                    $itemContainer.append($item);
+                    $itemContainer.addClass('menu-subtitle');
+                    $itemContainer.append('<span class="arrow">&#x25B6;</span>');
                     $itemContainer.append(this.renderMenu(item, level + 1));
                 }
+                $itemContainer.append($item);
 
                 // Append the item to the menu.
                 $menu.append($itemContainer);
@@ -135,8 +134,8 @@ function($, Backbone, _, ui, qtip){
                             api.hide(clickEvent);
                         });
 
-                        // Connect menu items.
-                        _this.connectMenuItems($menu);
+                        // Connect submenus.
+                        _this.connectSubMenus($menu);
 
                     },
                     // Hide submenus when the top menu is hidden.
@@ -148,7 +147,7 @@ function($, Backbone, _, ui, qtip){
             });
         },
 
-        connectMenuItems: function($menu){
+        connectSubMenus: function($menu){
 
             _.each($('.menu-item', $menu), function(menuEl){
                 var $self = $(menuEl);
@@ -158,7 +157,7 @@ function($, Backbone, _, ui, qtip){
                 var $parentContainer = $parentMenu.parent();
 
                 // If we can't find a sub-menu... return
-                var $submenu = $self.next('.menu');
+                var $submenu = $self.children('.menu');
                 if(! $submenu.length) {
                     return false; 
                 }
@@ -195,11 +194,20 @@ function($, Backbone, _, ui, qtip){
                         render: function(event, api) {
                             // Hide when other items in the parent menu are mouse-overed.
                             $('> .menu-item', $parentMenu).on('mouseover', function(mouseOverEvent){
-                                if (! $(mouseOverEvent.target).is(api.elements.target)){
-                                    api.hide();
+                                var $target = $(mouseOverEvent.target);
+                                if (! $target.is(api.elements.target) && ! api.elements.target.find($target).length){
+                                    api.hide(mouseOverEvent);
                                 }
                             });
                         },
+
+                        hide: function(event, api){
+                            api.elements.target.removeClass('expanded');
+                        },
+
+                        show: function(event, api){
+                            api.elements.target.addClass('expanded');
+                        }
                     }
                 });
             });

@@ -45,6 +45,7 @@
 
     .ui-tooltip-content{
         overflow: visible;
+        padding: 0;
     }
 
     .menu {
@@ -56,6 +57,15 @@
                 float: right;
                 margin-right: 5px;
             }
+        }
+    }
+
+    .menu-item{
+        cursor: pointer;
+        padding: 2px 5px;
+        display: block;
+        &.expanded, &:hover{
+            background-color: #DBE8F8;
         }
     }
 }
