@@ -1,9 +1,9 @@
 define([
 	"jquery",
-	"use!backbone",
-	"use!underscore",
-	"use!ui",
-	"use!qtip"
+	"backbone",
+	"underscore",
+	"ui",
+	"qtip"
 		],
 function($, Backbone, _, ui, qtip){
 
